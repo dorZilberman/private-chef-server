@@ -6,10 +6,11 @@ export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
 
   @Post()
-  getHello(@Body() body): Promise<string> {
-    if (!body?.input) {
+  getHello(@Body() body: { ingredients: string[], allergies: string[]}): Promise<string> {
+    if (!Array.isArray(body?.ingredients) || !Array.isArray(body.allergies)) {
       throw new BadRequestException('missing input');
     }
-    return this.recipeService.getRecipe(body.input);
+    const { ingredients, allergies } = body;
+    return this.recipeService.getRecipe(ingredients, allergies);
   }
 }
