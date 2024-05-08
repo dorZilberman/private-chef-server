@@ -16,7 +16,6 @@ async function bootstrap() {
   const ingredientsService = app.get(IngredientsService);
   // Fetch data from external API
   let ingredients = await ingredientsService.getIngredientsFromCSV();
-  console.log(ingredients);
   // Save data to MongoDB
   const collection = db.collection('ingredients');
   await collection.insertMany(ingredients);
