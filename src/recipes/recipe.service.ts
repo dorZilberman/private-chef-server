@@ -26,6 +26,8 @@ export class RecipeService {
     the keys in the json should be: 'title'(for the dish name), 'products'(as an array with amount needed for each product),
     'nutritional values' and 'instructions'(the instructions for the recipe itself)`);
 
+    let numOfRetreies = 1;
+
     const apiKey = 'AIzaSyBcVOkOTe2EaJDzohefkuu_gjRnSq8-yGQ';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
     const body = {
@@ -39,18 +41,24 @@ export class RecipeService {
         }
       ]
     };
-    try {
-      const response: AxiosResponse = await this.httpService.post(url, body).toPromise();
-      const responstData = response.data;
-      const textJson = responstData?.candidates[0]?.content.parts[0]?.text;
-      const startIndex = textJson.indexOf('```json') + 7;
-      const endIndex = textJson.lastIndexOf('```');
-      const jsonString = textJson.substring(startIndex, endIndex).trim();
-      const jsonData = JSON.parse(jsonString);
-      return jsonData;
-    } catch (error) {
-      console.error('Failed to fetch recipe:', error);
-      throw new Error('Failed to retrieve the recipe.');
-    }
+    while ( numOfRetreies <=5 ) {
+      try {
+        const response: AxiosResponse = await this.httpService.post(url, body).toPromise();
+        const responstData = response.data;
+        const textJson = responstData?.candidates[0]?.content.parts[0]?.text;
+        const startIndex = textJson.indexOf('```json') + 7;
+        const endIndex = textJson.lastIndexOf('```');
+        const jsonString = textJson.substring(startIndex, endIndex).trim();
+        const jsonData = JSON.parse(jsonString);
+        return jsonData;
+      } catch (error) {
+        if (numOfRetreies === 5) {
+          console.error('Failed to fetch recipe:', error);
+          throw new Error('Failed to retrieve the recipe.');
+        } else {
+          console.log(`failed on attempt #${numOfRetreies}, trying again`)
+        }
+      }
+    } 
   }
 }

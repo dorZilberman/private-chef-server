@@ -7,7 +7,7 @@ export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
 
   @Post()
-  getHello(@Body() body: CreateRecipeDto): Promise<string> {
+  getRecipe(@Body() body: CreateRecipeDto): Promise<string> {
     if (!Array.isArray(body?.ingredients) || !Array.isArray(body.allergies)) {
       throw new BadRequestException('missing input');
     }
