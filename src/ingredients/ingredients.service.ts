@@ -90,7 +90,11 @@ export class IngredientsService {
 
     const result = await model.generateContent([prompt, image]);
     const ingredients = result.response.text().split(',').map(ingredient => ingredient.trim())
-    return this.ingredientModel.find({ name: { $in: ingredients } }).exec();
+    const docs = await this.ingredientModel.find({ name: { $in: ingredients } }).exec();
+    const uniqueDocsMap: Map<string, Ingredient> = docs.reduce((map, doc) => map.set(doc.name, doc), new Map());    
+    const uniqueDocs: Ingredient[] = Array.from(uniqueDocsMap.values());
+
+    return uniqueDocs;
   }
 
 }
