@@ -16,23 +16,22 @@ export class UserController {
     res.status(201).json(result);
   }
 
-  @Post('register-google')
-  @UseGuards(GoogleAuthGuard)
-  async registerUserWithGoogle(@Body() body: any, @Res() res: Response) {
-    const result = await this.userService.registerUserWithGoogle(body);
-    res.status(201).json(result);
-  }
-
   @Post('login')
   async loginUser(@Body() body: any, @Res() res: Response) {
-    const result = await this.userService.loginUser(body);
-    res.status(200).json(result);
+    try {
+      console.log('body');
+      const result = await this.userService.loginUser(body);
+      res.status(200).json(result);
+    }
+    catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
 
   @Post('login-google')
   @UseGuards(GoogleAuthGuard)
   async loginUserWithGoogle(@Body() body: any, @Res() res: Response) {
-    const result = await this.userService.loginUserWithGoogle(body);
+    const result = await this.userService.validateGoogleToken(body);
     res.status(200).json(result);
   }
 
