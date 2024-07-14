@@ -16,13 +16,6 @@ export class UserController {
     res.status(201).json(result);
   }
 
-  @Post('register-google')
-  @UseGuards(GoogleAuthGuard)
-  async registerUserWithGoogle(@Body() body: any, @Res() res: Response) {
-    const result = await this.userService.registerUserWithGoogle(body);
-    res.status(201).json(result);
-  }
-
   @Post('login')
   async loginUser(@Body() body: any, @Res() res: Response) {
     try {

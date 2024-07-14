@@ -106,41 +106,6 @@ export class UserService {
     }
   }
 
-  async registerUserWithGoogle(body: any): Promise<any> {
-    try {
-      const { email, name, picture } = body;
-
-      const newUser = new this.userModel({
-        email,
-        password: 'google-auth',
-        fullName: name,
-        image: picture,
-        tokens: [],
-      });
-
-      const savedUser = await newUser.save();
-      const accessToken = jwt.sign(
-        { email: savedUser.email, userId: savedUser._id },
-        this.jwtSecret,
-        { expiresIn: '1h' }
-      );
-      const refreshToken = jwt.sign(
-        { userId: savedUser._id },
-        this.jwtRefreshTokenSecret
-      );
-      newUser.tokens.push(refreshToken);
-      await newUser.save();
-
-      return {
-        message: 'User created!',
-        userId: savedUser._id,
-        accessToken,
-        refreshToken,
-      };
-    } catch (error) {
-      throw new HttpException('Error registering new user with Google', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
 
   async loginUser(body: any): Promise<any> {
       const { email, password } = body;
@@ -177,48 +142,6 @@ export class UserService {
       };
     } catch (error) {
       throw new HttpException('Error logging in', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  async loginUserWithGoogle(body: any): Promise<any> {
-    try {
-      const { credential } = body;
-
-      const googleUser = await this.verify(credential);
-      if (!googleUser) {
-        throw new Error('Invalid Google token');
-      }
-      let user = await this.userModel.findOne({email: googleUser.email});
-      if (!user) {
-        user = await this.userModel.create({
-          email: googleUser.email,
-          fullName: googleUser.given_name + ' ' + googleUser.family_name,
-          password: 'google-auth',
-          image: googleUser.picture,
-          tokens: []
-        });
-      }
-
-      const accessToken = jwt.sign(
-        { email: user.email, userId: user._id },
-        this.jwtSecret,
-        { expiresIn: '1h' }
-      );
-      const refreshToken = jwt.sign(
-        { userId: user._id },
-        this.jwtRefreshTokenSecret
-      );
-      user.tokens.push(refreshToken);
-      await user.save();
-
-      return {
-        message: 'User Logged In successfully with Google!',
-        userId: user._id,
-        accessToken,
-        refreshToken,
-      };
-    } catch (error) {
-      throw new HttpException('Error logging in with Google', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
