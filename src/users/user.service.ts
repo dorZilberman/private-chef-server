@@ -4,13 +4,61 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { User } from '../schemas/user.schema';
+import { OAuth2Client } from 'google-auth-library';
 
 @Injectable()
 export class UserService {
   private jwtSecret = process.env.JWT_SECRET_TOKEN as string;
   private jwtRefreshTokenSecret = process.env.JWT_SECRET_REFRESH_TOKEN as string;
+  private client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  
 
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  async verify(token: string) {
+    const ticket = await this.client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    return payload;
+  }
+
+  async validateGoogleToken(body): Promise<any> {
+    const token = body.credential
+    const googleUser = await this.verify(token);
+    if (!googleUser) {
+      throw new Error('Invalid Google token');
+    }
+    let user = await this.userModel.findOne({email: googleUser.email});
+    if (!user) {
+      user = new this.userModel({
+        email: googleUser.email,
+        password: 'google-auth',
+        fullName: googleUser.given_name + ' ' + googleUser.family_name,
+        image: googleUser.picture,
+        tokens: []
+      });
+    }
+      const accessToken = jwt.sign(
+        { email: user.email, userId: user._id },
+        this.jwtSecret,
+        { expiresIn: '1h' }
+      );
+      const refreshToken = jwt.sign(
+        { userId: user._id },
+        this.jwtRefreshTokenSecret
+      );
+      user.tokens.push(refreshToken);
+      await user.save();
+
+      return {
+        message: 'Google user logged in successfully!',
+        userId: user._id,
+        accessToken,
+        refreshToken,
+      };
+  }
 
   async registerUser(body: any, file?: Express.Multer.File): Promise<any> {
     try {
@@ -95,7 +143,6 @@ export class UserService {
   }
 
   async loginUser(body: any): Promise<any> {
-    try {
       const { email, password } = body;
       if (!email || !password) throw 'missing parameters';
 
@@ -109,6 +156,7 @@ export class UserService {
         throw new HttpException('Authentication failed: incorrect password.', HttpStatus.UNAUTHORIZED);
       }
 
+      try {
       const accessToken = jwt.sign(
         { email: user.email, userId: user._id },
         this.jwtSecret,
@@ -134,15 +182,25 @@ export class UserService {
 
   async loginUserWithGoogle(body: any): Promise<any> {
     try {
-      const { email } = body;
+      const { credential } = body;
 
-      const user = await this.userModel.findOne({ email });
+      const googleUser = await this.verify(credential);
+      if (!googleUser) {
+        throw new Error('Invalid Google token');
+      }
+      let user = await this.userModel.findOne({email: googleUser.email});
       if (!user) {
-        throw new HttpException('Authentication failed: user not found.', HttpStatus.UNAUTHORIZED);
+        user = await this.userModel.create({
+          email: googleUser.email,
+          fullName: googleUser.given_name + ' ' + googleUser.family_name,
+          password: 'google-auth',
+          image: googleUser.picture,
+          tokens: []
+        });
       }
 
       const accessToken = jwt.sign(
-        { email: email, userId: user._id },
+        { email: user.email, userId: user._id },
         this.jwtSecret,
         { expiresIn: '1h' }
       );
