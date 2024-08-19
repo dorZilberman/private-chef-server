@@ -9,7 +9,7 @@ export class IngredientsController {
     constructor(private readonly ingredientsService: IngredientsService) {}
 
     @Get()
-    GetIngredients(): Promise<Ingredient[]> { // Update the return type to Promise<Ingredient[]>
+    GetIngredients(): Promise<Ingredient[]> {
         return this.ingredientsService.getIngredients();
     }
 
