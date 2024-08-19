@@ -78,9 +78,6 @@ export class UserService {
         tokens: [],
       });
 
-      console.log('newUser');
-      console.log(newUser);
-
       const savedUser = await newUser.save();
       const accessToken = jwt.sign(
         { email: savedUser.email, userId: savedUser._id },
@@ -101,7 +98,6 @@ export class UserService {
         refreshToken,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException('Error registering new user', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

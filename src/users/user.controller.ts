@@ -19,7 +19,6 @@ export class UserController {
   @Post('login')
   async loginUser(@Body() body: any, @Res() res: Response) {
     try {
-      console.log('body');
       const result = await this.userService.loginUser(body);
       res.status(200).json(result);
     }
