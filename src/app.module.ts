@@ -6,9 +6,10 @@ import { IngredientsModule } from './ingredients/ingredients.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from './users/user.module';
 import { CommentsModule } from './comments/comments.module';
+import { LikesModule } from './likes/likes.module';
 
 @Module({
-  imports: [RecipeModule, IngredientsModule, UserModule, CommentsModule,
+  imports: [RecipeModule, IngredientsModule, UserModule, CommentsModule, LikesModule,
     MongooseModule.forRoot('mongodb://localhost/PrivateChefDB'),
   ],
   controllers: [AppController],

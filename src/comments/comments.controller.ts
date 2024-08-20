@@ -2,7 +2,6 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Http
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { error } from 'console';
 
 @Controller('comments')
 @UseGuards(AuthGuard)
