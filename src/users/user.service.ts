@@ -54,7 +54,12 @@ export class UserService {
 
       return {
         message: 'Google user logged in successfully!',
-        userId: user._id,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          image: user.image,
+        },
         accessToken,
         refreshToken,
       };
@@ -132,7 +137,12 @@ export class UserService {
 
       return {
         message: 'User Logged In successfully!',
-        userId: user._id,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          image: user.image,
+        },
         accessToken,
         refreshToken,
       };
