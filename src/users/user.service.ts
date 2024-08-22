@@ -5,6 +5,10 @@ import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { User } from '../schemas/user.schema';
 import { OAuth2Client } from 'google-auth-library';
+import * as fs from 'fs';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
 
 @Injectable()
 export class UserService {
@@ -74,12 +78,14 @@ export class UserService {
       const { email, password, name } = body;
       if (!email || !password || !name) throw 'missing parameters';
 
+      const imagePath = file ? await this.saveImage(file) : "";
+
       const hashedPassword = await bcrypt.hash(password, 12);
       const newUser = new this.userModel({
         email,
         password: hashedPassword,
         fullName: name,
-        image: file?.path || body.image || "",
+        image: imagePath,
         tokens: [],
       });
 
@@ -105,6 +111,20 @@ export class UserService {
     } catch (error) {
       throw new HttpException('Error registering new user', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private async saveImage(file: Express.Multer.File): Promise<string> {
+    const uploadDir = path.resolve('uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+
+    const uniqueSuffix = `${uuidv4()}-${file.originalname}`;
+    const filePath = path.join(uploadDir, uniqueSuffix);
+
+    await fs.promises.writeFile(filePath, file.buffer);
+
+    return `/uploads/${uniqueSuffix}`; // This is the relative path that can be stored in the database
   }
 
 
