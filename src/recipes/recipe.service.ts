@@ -13,8 +13,14 @@ import { OpenAI } from 'openai';
 export class RecipeService {
   constructor( @InjectModel(Recipe.name) private recipeModel: Model<RecipeDocument>, private httpService: HttpService) {}
 
-  async getRecipe(products: string[], allergies: string[]): Promise<string> {
+  async getRecipe(products: string[], allergies: string[], isRegenerate: boolean, lastRecipeName?: string): Promise<string> {
+    console.log(isRegenerate)
+    console.log(lastRecipeName)
     let query = 'please generate a recipe for me, ';
+
+    if (isRegenerate) {
+      query = query.concat(`the last recipe was: ${lastRecipeName}, but I want a different one, `);
+    }
     if (products?.length) {
       query = query.concat('the ingredients I have are: ');
       for (const product of products) {

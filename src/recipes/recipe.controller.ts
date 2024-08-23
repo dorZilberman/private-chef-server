@@ -18,8 +18,8 @@ export class RecipeController {
     if (!Array.isArray(body?.ingredients) || !Array.isArray(body?.allergies)) {
       throw new BadRequestException('Missing input');
     }
-    const { ingredients, allergies } = body;
-    return this.recipeService.getRecipe(ingredients, allergies);
+    const { ingredients, allergies,isRegenerate, lastRecipeName } = body;
+    return this.recipeService.getRecipe(ingredients, allergies, isRegenerate, lastRecipeName);
   }
 
   // Create a new recipe
