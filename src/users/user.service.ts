@@ -252,6 +252,7 @@ export class UserService {
         email: user.email,
         fullName: user.fullName,
         image: user.image,
+        allergies: user.allergies,
       };
     } catch (error) {
       throw new HttpException('Error retrieving user profile', HttpStatus.INTERNAL_SERVER_ERROR);
