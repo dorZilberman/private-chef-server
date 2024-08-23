@@ -162,6 +162,7 @@ export class UserService {
           fullName: user.fullName,
           email: user.email,
           image: user.image,
+          allergies: user.allergies,
         },
         accessToken,
         refreshToken,
