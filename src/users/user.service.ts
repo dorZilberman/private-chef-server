@@ -215,7 +215,13 @@ export class UserService {
       }
 
       await user.save();
-      return { message: 'User profile updated' };
+      return { message: 'User profile updated', user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        image: user.image,
+        allergies: user.allergies,
+      } };
     } catch (error) {
       throw new HttpException('Error updating user profile', HttpStatus.INTERNAL_SERVER_ERROR);
     }
