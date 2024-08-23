@@ -6,6 +6,8 @@ import { RecipeDto } from 'src/dto/recipe.dto';
 import { User } from 'src/schemas/user.schema';
 import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
+import { firstValueFrom, map } from 'rxjs';
+import { OpenAI } from 'openai';
 
 @Injectable()
 export class RecipeService {
@@ -47,6 +49,9 @@ export class RecipeService {
       ]
     };
 
+    const chatGPTURL = 'https://api.openai.com/v1/images/generations'
+
+
     while (numOfRetries <= 5) {
       try {
         const response: AxiosResponse = await this.httpService.post(url, body).toPromise();
@@ -56,6 +61,8 @@ export class RecipeService {
         const endIndex = textJson.lastIndexOf('```');
         const jsonString = textJson.substring(startIndex, endIndex).trim();
         const jsonData = JSON.parse(jsonString);
+        const imageURL = await this.generateRecipeImage(jsonData.title);
+        jsonData.imageURL = imageURL;
         return jsonData;
       } catch (error) {
         if (numOfRetries === 5) {
@@ -69,15 +76,33 @@ export class RecipeService {
     } 
   }
 
+  async generateRecipeImage(recipeTitle: string): Promise<string> {
+    try {
+      const openai = new OpenAI();
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: `Please generate a food image for this title: ${recipeTitle}`,
+        n: 1,
+        size: "1024x1024",
+      });
+      const image_url = response.data[0].url;
+      return image_url;
+    } catch (error) {
+      console.error('Error generating image:', error.response?.data || error.message);
+      throw new Error('Failed to generate image');
+    }
+  }
+
   // Create a new recipe
   async createRecipe(userId: string, createRecipeDto: RecipeDto): Promise<Recipe> {
-    const { title, products, nutritional_values, instructions } = createRecipeDto;
+    const { title, products, nutritional_values, instructions, imageURL } = createRecipeDto;
     const newRecipe = new this.recipeModel({
       userId,
       title,
       products,
       nutritional_values,
       instructions,
+      imageURL
     });
     return newRecipe.save();
   }
