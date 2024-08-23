@@ -174,10 +174,15 @@ export class UserService {
   async updateUserProfile(userId: string, body: any, file?: Express.Multer.File): Promise<any> {
     try {
       let fullName: string;
+      let allergies: string[];
+
       if (typeof body.jsonData === 'string') {
         fullName = JSON.parse(body.jsonData).fullName;
+        allergies = JSON.parse(body.jsonData).allergies;
+
       } else {
         fullName = body.fullName;
+        allergies = JSON.parse(body.allergies)
       }
 
       const user = await this.userModel.findById(userId);
@@ -185,12 +190,27 @@ export class UserService {
         throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
       }
 
+      // If a new image file is uploaded
+      if (file) {
+        // Optionally delete the old image file
+        if (user.image != `/uploads/${file.originalname}`) {
+          const oldImagePath = path.join(path.resolve(), user.image);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath); // Delete the old image
+          }
+        }
+
+        // Save the new image
+        const newImagePath = await this.saveImage(file);
+        user.image = newImagePath;
+      }
+
       if (fullName && user.fullName !== fullName) {
         user.fullName = fullName;
       }
 
-      if (file?.path && user.image !== file.path) {
-        user.image = file.path;
+      if (allergies && user.allergies !== allergies) {
+        user.allergies = allergies;
       }
 
       await user.save();
