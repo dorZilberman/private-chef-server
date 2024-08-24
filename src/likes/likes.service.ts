@@ -14,16 +14,16 @@ export class LikesService {
 
     async likeComment(commentId: string, userId: string): Promise<CommentLike> {
         const like = new this.commentLikeModel({
-            commentId: commentId,
-            userId: userId
+            commentId: new Types.ObjectId(commentId),
+            userId: new Types.ObjectId(userId)
         });
         return await like.save();
     }
 
     async likeRecipe(recipeId: string, userId: Types.ObjectId): Promise<RecipeLike> {
         const like = new this.recipeLikeModel({
-            recipeId: recipeId,
-            userId: userId
+            recipeId: new Types.ObjectId(recipeId),
+            userId: new Types.ObjectId(userId)
         });
         return await like.save();
     }

@@ -30,4 +30,37 @@ export class CommentsService {
     const objectId = new Types.ObjectId(recipeId);
     return await this.commentModel.find({ recipeId: objectId });
   }
+
+  async getCommentsWithLikes(recipeId: string, userId: string) {
+    const objectId = new Types.ObjectId(recipeId);
+    const userObjectId = new Types.ObjectId(userId);
+
+    const commentsWithLikes = await this.commentModel.aggregate([
+      { $match: { recipeId: objectId } },
+
+      {
+        $lookup: {
+          from: 'commentlikes',
+          localField: '_id',
+          foreignField: 'commentId',
+          as: 'likes',
+        },
+      },
+      {
+        $addFields: {
+          likeCount: { $size: '$likes' },
+          alreadyLiked: {
+            $in: [userObjectId, '$likes.userId'],
+          },
+        },
+      },
+      {
+        $project: {
+          likes: 0,
+        },
+      },
+    ]);
+
+    return commentsWithLikes;
+  }
 }
