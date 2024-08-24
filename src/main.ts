@@ -31,9 +31,18 @@ async function bootstrap() {
     // Fetch data from external API
     const ingredients = await ingredientsService.getIngredientsFromCSV();
 
-    // Save data to MongoDB
-    const collection = db.collection('ingredients');
-    await collection.insertMany(ingredients);
+    // Prepare bulk operations
+    const bulkOps = ingredients.map((ingredient) => ({
+      updateOne: {
+        filter: { id: ingredient.id }, // Assuming 'name' is the unique field
+        update: { $set: ingredient },
+        upsert: true, // Insert if not already present
+      },
+    }));
+
+// Execute bulk operations
+  const collection = db.collection('ingredients');
+  await collection.bulkWrite(bulkOps);
   } catch (error) {
     console.error('Error connecting to MongoDB or fetching data:', error);
     process.exit(1);
