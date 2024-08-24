@@ -12,11 +12,14 @@ export class Recipe {
   @Prop({ required: true })
   title: string;
 
-  @Prop({ type: [String] })
-  products: string[];
+  @Prop({ type: []})
+  products: { amount: string; name: string }[];
 
-  @Prop({ type: [String] })
+  @Prop({ type: [String], default: [] })
   nutritional_values: string[];
+
+  @Prop({ default: "" })
+  imageURL: string;
 
   @Prop({ type: [String] })
   instructions: string[];

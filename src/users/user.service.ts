@@ -5,6 +5,10 @@ import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { User } from '../schemas/user.schema';
 import { OAuth2Client } from 'google-auth-library';
+import * as fs from 'fs';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
 
 @Injectable()
 export class UserService {
@@ -54,7 +58,12 @@ export class UserService {
 
       return {
         message: 'Google user logged in successfully!',
-        userId: user._id,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          image: user.image,
+        },
         accessToken,
         refreshToken,
       };
@@ -69,12 +78,14 @@ export class UserService {
       const { email, password, name } = body;
       if (!email || !password || !name) throw 'missing parameters';
 
+      const imagePath = file ? await this.saveImage(file) : "";
+
       const hashedPassword = await bcrypt.hash(password, 12);
       const newUser = new this.userModel({
         email,
         password: hashedPassword,
         fullName: name,
-        image: file?.path || body.image || "",
+        image: imagePath,
         tokens: [],
       });
 
@@ -100,6 +111,20 @@ export class UserService {
     } catch (error) {
       throw new HttpException('Error registering new user', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private async saveImage(file: Express.Multer.File): Promise<string> {
+    const uploadDir = path.resolve('uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+
+    const uniqueSuffix = `${uuidv4()}-${file.originalname}`;
+    const filePath = path.join(uploadDir, uniqueSuffix);
+
+    await fs.promises.writeFile(filePath, file.buffer);
+
+    return `/uploads/${uniqueSuffix}`; // This is the relative path that can be stored in the database
   }
 
 
@@ -132,7 +157,13 @@ export class UserService {
 
       return {
         message: 'User Logged In successfully!',
-        userId: user._id,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          image: user.image,
+          allergies: user.allergies,
+        },
         accessToken,
         refreshToken,
       };
@@ -144,10 +175,15 @@ export class UserService {
   async updateUserProfile(userId: string, body: any, file?: Express.Multer.File): Promise<any> {
     try {
       let fullName: string;
+      let allergies: string[];
+
       if (typeof body.jsonData === 'string') {
         fullName = JSON.parse(body.jsonData).fullName;
+        allergies = JSON.parse(body.jsonData).allergies;
+
       } else {
         fullName = body.fullName;
+        allergies = JSON.parse(body.allergies)
       }
 
       const user = await this.userModel.findById(userId);
@@ -155,16 +191,37 @@ export class UserService {
         throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
       }
 
+      // If a new image file is uploaded
+      if (file) {
+        // Optionally delete the old image file
+        if (user.image != `/uploads/${file.originalname}`) {
+          const oldImagePath = path.join(path.resolve(), user.image);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath); // Delete the old image
+          }
+        }
+
+        // Save the new image
+        const newImagePath = await this.saveImage(file);
+        user.image = newImagePath;
+      }
+
       if (fullName && user.fullName !== fullName) {
         user.fullName = fullName;
       }
 
-      if (file?.path && user.image !== file.path) {
-        user.image = file.path;
+      if (allergies && user.allergies !== allergies) {
+        user.allergies = allergies;
       }
 
       await user.save();
-      return { message: 'User profile updated' };
+      return { message: 'User profile updated', user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        image: user.image,
+        allergies: user.allergies,
+      } };
     } catch (error) {
       throw new HttpException('Error updating user profile', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -195,6 +252,7 @@ export class UserService {
         email: user.email,
         fullName: user.fullName,
         image: user.image,
+        allergies: user.allergies,
       };
     } catch (error) {
       throw new HttpException('Error retrieving user profile', HttpStatus.INTERNAL_SERVER_ERROR);

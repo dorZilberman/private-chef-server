@@ -5,4 +5,6 @@ export class CreateRecipeDto {
     readonly ingredients: string[]
     @IsArray()
     readonly allergies: string[]
+    readonly isRegenerate: boolean
+    readonly lastRecipeName?: string
 }

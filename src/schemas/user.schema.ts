@@ -17,6 +17,9 @@ export class User {
   @Prop({ default: '' })
   image: string;
 
+  @Prop({ type: [String], default: [] })
+  allergies: string[];
+
   @Prop({ type: [String] })
   tokens: string[];
 
