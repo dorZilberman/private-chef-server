@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Recipe, RecipeDocument } from 'src/schemas/recipe.schema';
 import { RecipeDto } from 'src/dto/recipe.dto';
 import { User } from 'src/schemas/user.schema';
@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class RecipeService {
-  constructor( @InjectModel(Recipe.name) private recipeModel: Model<RecipeDocument>, private httpService: HttpService) {}
+  constructor(@InjectModel(Recipe.name) private recipeModel: Model<RecipeDocument>, private httpService: HttpService) { }
 
   async getRecipe(products: string[], allergies: string[], isRegenerate: boolean, lastRecipeName?: string): Promise<string> {
     console.log(isRegenerate)
@@ -82,7 +82,7 @@ export class RecipeService {
           numOfRetries++;
         }
       }
-    } 
+    }
   }
 
   async generateRecipeImage(recipeTitle: string): Promise<string> {
@@ -160,7 +160,14 @@ export class RecipeService {
 
   // Retrieve all recipes by user ID
   async getRecipesByUserId(userId: string): Promise<Recipe[]> {
-    return this.recipeModel.find({ userId }).exec();
+
+    const pipeline = this.buildGetRecipesAggregation(userId);
+
+    const fullPipeline = [
+      { $match: { userId: userId } },
+      ...pipeline,
+    ];
+    return await this.recipeModel.aggregate(fullPipeline);
   }
 
   // Update a recipe by ID, with user validation
@@ -196,4 +203,45 @@ export class RecipeService {
     const res = await recipe.deleteOne();
     return res.deletedCount === 1;
   }
+
+  buildGetRecipesAggregation(userId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'comments',
+          localField: '_id',
+          foreignField: 'recipeId',
+          as: 'comments',
+        },
+      },
+      {
+        $lookup: {
+          from: 'recipelikes',
+          localField: '_id',
+          foreignField: 'recipeId',
+          as: 'likes',
+        },
+      },
+      {
+        $addFields: {
+          commentCount: { $size: '$comments' },
+          likeCount: { $size: '$likes' },
+          alreadyLiked: {
+            $in: [userObjectId, '$likes.userId'],
+          },
+        },
+      },
+      {
+        $project: {
+          comments: 0,
+          likes: 0,
+        },
+      },
+    ];
+
+    return pipeline;
+  }
+
 }

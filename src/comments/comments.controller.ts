@@ -14,7 +14,7 @@ export class CommentsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return await this.commentsService.getComments(id);
+  async findOne(@Param('id') id: string, @Req() req) {
+    return await this.commentsService.getCommentsWithLikes(id, req.user.userId);
   }
 }
