@@ -6,8 +6,11 @@ import { RecipeDto } from 'src/dto/recipe.dto';
 import { User } from 'src/schemas/user.schema';
 import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
-import { firstValueFrom, map } from 'rxjs';
+import { firstValueFrom, map, tap } from 'rxjs';
 import { OpenAI } from 'openai';
+import * as fs from 'fs';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class RecipeService {
@@ -67,7 +70,7 @@ export class RecipeService {
         const endIndex = textJson.lastIndexOf('```');
         const jsonString = textJson.substring(startIndex, endIndex).trim();
         const jsonData = JSON.parse(jsonString);
-        const imageURL = await this.generateRecipeImage(jsonData.title);
+        const imageURL = await this.generateAndSaveImage(jsonData.title);
         jsonData.imageURL = imageURL;
         return jsonData;
       } catch (error) {
@@ -97,6 +100,36 @@ export class RecipeService {
       console.error('Error generating image:', error.response?.data || error.message);
       throw new Error('Failed to generate image');
     }
+  }
+
+  private async downloadImage(imageUrl: string, filename: string): Promise<string> {
+    try {
+      const response = await this.httpService.get(imageUrl, { responseType: 'stream' }).toPromise();
+
+      const imagesDir = path.resolve('uploads/images');
+      if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
+      }
+
+      const filePath = path.join(imagesDir, filename);
+
+      const writer = fs.createWriteStream(filePath);
+      response.data.pipe(writer)
+
+      return new Promise((resolve, reject) => {
+        writer.on('finish', () => resolve(filePath));
+        writer.on('error', reject);
+      });
+    } catch (error) {
+      console.error('Error downloading image:', error.message);
+    }
+  }
+
+  public async generateAndSaveImage(recipeTitle: string): Promise<string> {
+    const imageUrl = await this.generateRecipeImage(recipeTitle);
+    const filename = `${recipeTitle.replace(/\s+/g, '_')}_${uuidv4()}.png`;
+    const savedPath = await this.downloadImage(imageUrl, filename);
+    return `/uploads/images/${filename}`;;
   }
 
   // Create a new recipe

@@ -17,7 +17,12 @@ import * as path from 'path';
     ServeStaticModule.forRoot({
       rootPath: path.resolve('uploads'),
       serveRoot: '/uploads', // Serve files from this directory under the /uploads path
-    }),
+    },
+    {
+      rootPath: path.resolve('uploads/images'),
+      serveRoot: '/uploads/images', // Serve files from this directory under the /uploads path
+    }
+  ),
   ],
   controllers: [AppController],
   providers: [AppService],
