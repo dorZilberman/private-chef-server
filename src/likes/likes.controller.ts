@@ -11,11 +11,11 @@ export class LikesController {
 
     @Post('comment/:id')
     async likeComment(@Param('id') commentId: string, @Req() req) {
-        return this.likesService.likeComment(commentId, req.user.userId);
+        return this.likesService.toggleLikeComment(commentId, req.user.userId);
     }
 
     @Post('recipe/:id')
     async likePost(@Param('id') recipeId: string, @Req() req) {
-        return this.likesService.likeRecipe(recipeId, req.user.userId);
+        return this.likesService.toggleLikeRecipe(recipeId, req.user.userId);
     }
 }
