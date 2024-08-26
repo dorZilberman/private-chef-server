@@ -8,17 +8,17 @@ import { Comment } from 'src/schemas/comment.schema';
 
 @Injectable()
 export class CommentsService {
-  constructor(@InjectModel(Comment.name) private commentModel: Model<CommentDocument>) { }
+  constructor(@InjectModel(Comment.name) private commentModel: Model<CommentDocument>) {}
+
   async create(createCommentDto: CreateCommentDto, userId: string) {
     try {
       const newComment = new this.commentModel({
         userId: new Types.ObjectId(userId),
         recipeId: new Types.ObjectId(createCommentDto.recipeId),
-        comment: createCommentDto.comment
+        comment: createCommentDto.comment,
       });
       return await newComment.save();
-    }
-    catch (error) {
+    } catch (error) {
       console.log(userId);
       console.log(createCommentDto);
       console.error(error.message, error.stack);
@@ -37,7 +37,6 @@ export class CommentsService {
 
     const commentsWithLikes = await this.commentModel.aggregate([
       { $match: { recipeId: objectId } },
-
       {
         $lookup: {
           from: 'commentlikes',
@@ -62,5 +61,33 @@ export class CommentsService {
     ]);
 
     return commentsWithLikes;
+  }
+
+  async findOne(id: string): Promise<CommentDocument> {
+    const objectId = new Types.ObjectId(id);
+    const comment = await this.commentModel.findById(objectId);
+    if (!comment) {
+      throw new HttpException('Comment not found', HttpStatus.NOT_FOUND);
+    }
+    return comment;
+  }
+
+  async update(id: string, updateCommentDto: UpdateCommentDto): Promise<CommentDocument> {
+    const objectId = new Types.ObjectId(id);
+    const updatedComment = await this.commentModel.findByIdAndUpdate(objectId, updateCommentDto, {
+      new: true,
+    });
+    if (!updatedComment) {
+      throw new HttpException('Comment not found or not updated', HttpStatus.NOT_FOUND);
+    }
+    return updatedComment;
+  }
+
+  async remove(id: string): Promise<void> {
+    const objectId = new Types.ObjectId(id);
+    const result = await this.commentModel.findByIdAndDelete(objectId);
+    if (!result) {
+      throw new HttpException('Comment not found or not deleted', HttpStatus.NOT_FOUND);
+    }
   }
 }
