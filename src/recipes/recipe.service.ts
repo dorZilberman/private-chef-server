@@ -170,6 +170,12 @@ export class RecipeService {
     return await this.recipeModel.aggregate(fullPipeline);
   }
 
+  // Retrieve all recipes by user ID
+  async getAllRecipes(userId: string): Promise<Recipe[]> {
+    const pipeline = this.buildGetRecipesAggregation(userId);
+    return await this.recipeModel.aggregate(pipeline);
+  }
+
   // Update a recipe by ID, with user validation
   async updateRecipe(userId: string, id: string, updateRecipeDto: RecipeDto): Promise<Recipe> {
     const recipe = await this.recipeModel.findById(id).exec();
