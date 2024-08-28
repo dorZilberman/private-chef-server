@@ -35,7 +35,8 @@ export class RecipeController {
   @UseGuards(AuthGuard)
   async getAllRecipes(@Req() req): Promise<any> {
     const userId = req.user.userId;
-    return this.recipeService.getAllRecipes(userId);
+    const recipes =  await this.recipeService.getAllRecipes(userId);
+    return recipes
   }
 
   // Get a recipe by ID (only if the user owns it)

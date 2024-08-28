@@ -231,18 +231,34 @@ export class RecipeService {
         },
       },
       {
+             $addFields: {
+        userIdObjectId: { $toObjectId: '$userId' },
+         },
+      },
+      {
+        $lookup: {
+        from: 'users',
+        localField: 'userIdObjectId', // Assuming 'userId' is the field in the recipe schema
+        foreignField: '_id',
+        as: 'user',
+        },
+      },
+      {
         $addFields: {
           commentCount: { $size: '$comments' },
           likeCount: { $size: '$likes' },
           alreadyLiked: {
             $in: [userObjectId, '$likes.userId'],
           },
+          userName: { $arrayElemAt: ['$user.fullName', 0] },
         },
       },
       {
         $project: {
           comments: 0,
           likes: 0,
+          user: 0, // Remove userDetails after extracting the name
+          userIdObjectId: 0,
         },
       },
     ];
