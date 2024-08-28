@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Res, Put, Delete, Get, UseGuards, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, Req, Res, Put, Delete, Get, UseGuards, UploadedFile, UseInterceptors, Headers } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserService } from './user.service';
@@ -57,5 +57,27 @@ export class UserController {
     const user = (req as any).user;
     const result = await this.userService.getUserProfile(user.userId);
     res.status(200).json(result);
+  }
+
+  @Post('refresh-token')
+  async refreshToken(@Headers('authorization') authHeader: string, @Res() res: Response) {
+    try {
+      const refreshToken = authHeader.split(' ')[1]; // Extract token from "Bearer TOKEN"
+      const result = await this.userService.refreshToken(refreshToken);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(403).json({ message: error.message });
+    }
+  }
+
+  @Post('logout')
+  async logoutUser(@Headers('authorization') authHeader: string, @Res() res: Response) {
+    try {
+      const refreshToken = authHeader.split(' ')[1]; // Extract token from "Bearer TOKEN"
+      const result = await this.userService.logoutUser(refreshToken);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(403).json({ message: error.message });
+    }
   }
 }

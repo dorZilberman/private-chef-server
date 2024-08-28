@@ -1,4 +1,3 @@
-// likes.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -10,21 +9,45 @@ export class LikesService {
     constructor(
         @InjectModel('CommentLike') private readonly commentLikeModel: Model<CommentLike>,
         @InjectModel('RecipeLike') private readonly recipeLikeModel: Model<RecipeLike>,
-    ) { }
+    ) {}
 
-    async likeComment(commentId: string, userId: string): Promise<CommentLike> {
-        const like = new this.commentLikeModel({
+    async toggleLikeComment(commentId: string, userId: string): Promise<{ status: string }> {
+        const existingLike = await this.commentLikeModel.findOne({
             commentId: new Types.ObjectId(commentId),
-            userId: new Types.ObjectId(userId)
+            userId: new Types.ObjectId(userId),
         });
-        return await like.save();
+
+        if (existingLike) {
+            await this.commentLikeModel.deleteOne({ _id: existingLike._id });
+            return { status: 'unliked' }; // Indicate that the like was removed
+        }
+
+        const newLike = new this.commentLikeModel({
+            commentId: new Types.ObjectId(commentId),
+            userId: new Types.ObjectId(userId),
+        });
+
+        await newLike.save();
+        return { status: 'liked' }; // Indicate that a new like was added
     }
 
-    async likeRecipe(recipeId: string, userId: Types.ObjectId): Promise<RecipeLike> {
-        const like = new this.recipeLikeModel({
+    async toggleLikeRecipe(recipeId: string, userId: Types.ObjectId): Promise<{ status: string }> {
+        const existingLike = await this.recipeLikeModel.findOne({
             recipeId: new Types.ObjectId(recipeId),
-            userId: new Types.ObjectId(userId)
+            userId: new Types.ObjectId(userId),
         });
-        return await like.save();
+
+        if (existingLike) {
+            await this.recipeLikeModel.deleteOne({ _id: existingLike._id });
+            return { status: 'unliked' }; // Indicate that the like was removed
+        }
+
+        const newLike = new this.recipeLikeModel({
+            recipeId: new Types.ObjectId(recipeId),
+            userId: new Types.ObjectId(userId),
+        });
+
+        await newLike.save();
+        return { status: 'liked' }; // Indicate that a new like was added
     }
 }
