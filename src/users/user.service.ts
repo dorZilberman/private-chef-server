@@ -15,9 +15,9 @@ export class UserService {
   private jwtSecret = process.env.JWT_SECRET_TOKEN as string;
   private jwtRefreshTokenSecret = process.env.JWT_SECRET_REFRESH_TOKEN as string;
   private client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  
 
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  constructor(@InjectModel(User.name) private userModel: Model<User>) { }
 
   async verify(token: string) {
     const ticket = await this.client.verifyIdToken({
@@ -34,7 +34,7 @@ export class UserService {
     if (!googleUser) {
       throw new Error('Invalid Google token');
     }
-    let user = await this.userModel.findOne({email: googleUser.email});
+    let user = await this.userModel.findOne({ email: googleUser.email });
     if (!user) {
       user = new this.userModel({
         email: googleUser.email,
@@ -44,29 +44,29 @@ export class UserService {
         tokens: []
       });
     }
-      const accessToken = jwt.sign(
-        { email: user.email, userId: user._id },
-        this.jwtSecret,
-        { expiresIn: '1h' }
-      );
-      const refreshToken = jwt.sign(
-        { userId: user._id },
-        this.jwtRefreshTokenSecret
-      );
-      user.tokens.push(refreshToken);
-      await user.save();
+    const accessToken = jwt.sign(
+      { email: user.email, userId: user._id },
+      this.jwtSecret,
+      { expiresIn: '1h' }
+    );
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      this.jwtRefreshTokenSecret
+    );
+    user.tokens.push(refreshToken);
+    await user.save();
 
-      return {
-        message: 'Google user logged in successfully!',
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          image: user.image,
-        },
-        accessToken,
-        refreshToken,
-      };
+    return {
+      message: 'Google user logged in successfully!',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        image: user.image,
+      },
+      accessToken,
+      refreshToken,
+    };
   }
 
   async registerUser(body: any, file?: Express.Multer.File): Promise<any> {
@@ -129,20 +129,20 @@ export class UserService {
 
 
   async loginUser(body: any): Promise<any> {
-      const { email, password } = body;
-      if (!email || !password) throw 'missing parameters';
+    const { email, password } = body;
+    if (!email || !password) throw 'missing parameters';
 
-      const user = await this.userModel.findOne({ email });
-      if (!user) {
-        throw new HttpException('Authentication failed: user not found.', HttpStatus.UNAUTHORIZED);
-      }
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      throw new HttpException('Authentication failed: user not found.', HttpStatus.UNAUTHORIZED);
+    }
 
-      const isPasswordCorrect = await bcrypt.compare(password, user.password);
-      if (!isPasswordCorrect) {
-        throw new HttpException('Authentication failed: incorrect password.', HttpStatus.UNAUTHORIZED);
-      }
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      throw new HttpException('Authentication failed: incorrect password.', HttpStatus.UNAUTHORIZED);
+    }
 
-      try {
+    try {
       const accessToken = jwt.sign(
         { email: user.email, userId: user._id },
         this.jwtSecret,
@@ -215,13 +215,15 @@ export class UserService {
       }
 
       await user.save();
-      return { message: 'User profile updated', user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        image: user.image,
-        allergies: user.allergies,
-      } };
+      return {
+        message: 'User profile updated', user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          image: user.image,
+          allergies: user.allergies,
+        }
+      };
     } catch (error) {
       throw new HttpException('Error updating user profile', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -258,4 +260,77 @@ export class UserService {
       throw new HttpException('Error retrieving user profile', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!refreshToken) {
+      throw new HttpException('No token provided', HttpStatus.UNAUTHORIZED);
+    }
+  
+    try {
+      const userInfo: any = jwt.verify(refreshToken, this.jwtRefreshTokenSecret);
+  
+      const user = await this.userModel.findById(userInfo.userId);
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.FORBIDDEN);
+      }
+  
+      if (!user.tokens.includes(refreshToken)) {
+        user.tokens = [];
+        await user.save();
+        throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);
+      }
+  
+      const newAccessToken = jwt.sign(
+        { email: user.email, userId: user._id },
+        this.jwtSecret,
+        { expiresIn: '1h' }
+      );
+  
+      const newRefreshToken = jwt.sign(
+        { userId: user._id },
+        this.jwtRefreshTokenSecret
+      );
+  
+      user.tokens[user.tokens.indexOf(refreshToken)] = newRefreshToken;
+      await user.save();
+  
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.FORBIDDEN);
+    }
+  }
+  
+
+  async logoutUser(refreshToken: string): Promise<{ message: string }> {
+    if (!refreshToken) {
+      throw new HttpException('No token provided', HttpStatus.UNAUTHORIZED);
+    }
+  
+    try {
+      const userInfo: any = jwt.verify(refreshToken, this.jwtRefreshTokenSecret);
+  
+      const user = await this.userModel.findById(userInfo.userId);
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.FORBIDDEN);
+      }
+  
+      if (!user.tokens.includes(refreshToken)) {
+        user.tokens = [];
+        await user.save();
+        throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);
+      }
+  
+      user.tokens.splice(user.tokens.indexOf(refreshToken), 1);
+      await user.save();
+  
+      return { message: 'Logged out successfully' };
+    } catch (err) {
+      throw new HttpException(err.message, HttpStatus.FORBIDDEN);
+    }
+  }
+  
 }
