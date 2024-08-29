@@ -23,7 +23,7 @@ export class CommentsController {
   async update(@Param('id') id: string, @Body() updateCommentDto: UpdateCommentDto, @Req() req) {
     const comment = await this.commentsService.findOne(id);
 
-    if (comment.userId !== req.user.userId) {
+    if (comment.userId.toString() !== req.user.userId) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
@@ -34,7 +34,7 @@ export class CommentsController {
   async remove(@Param('id') id: string, @Req() req) {
     const comment = await this.commentsService.findOne(id);
 
-    if (comment.userId !== req.user.userId) {
+    if (comment.userId.toString() !== req.user.userId) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 

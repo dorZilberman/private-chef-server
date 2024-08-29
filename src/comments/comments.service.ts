@@ -90,7 +90,7 @@ export class CommentsService {
 
   async update(id: string, updateCommentDto: UpdateCommentDto): Promise<CommentDocument> {
     const objectId = new Types.ObjectId(id);
-    const updatedComment = await this.commentModel.findByIdAndUpdate(objectId, updateCommentDto, {
+    const updatedComment = await this.commentModel.findByIdAndUpdate(objectId, {comment: updateCommentDto.comment}, {
       new: true,
     });
     if (!updatedComment) {
