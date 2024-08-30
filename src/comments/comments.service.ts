@@ -47,15 +47,31 @@ export class CommentsService {
       },
       {
         $addFields: {
+   userIdObjectId: { $toObjectId: '$userId' },
+    },
+ },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userIdObjectId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      {
+        $addFields: {
           likeCount: { $size: '$likes' },
           alreadyLiked: {
             $in: [userObjectId, '$likes.userId'],
           },
+          userName: { $arrayElemAt: ['$user.fullName', 0] },
         },
       },
       {
         $project: {
           likes: 0,
+          userIdObjectId: 0,
+          user: 0,
         },
       },
     ]);
@@ -74,7 +90,7 @@ export class CommentsService {
 
   async update(id: string, updateCommentDto: UpdateCommentDto): Promise<CommentDocument> {
     const objectId = new Types.ObjectId(id);
-    const updatedComment = await this.commentModel.findByIdAndUpdate(objectId, updateCommentDto, {
+    const updatedComment = await this.commentModel.findByIdAndUpdate(objectId, {comment: updateCommentDto.comment}, {
       new: true,
     });
     if (!updatedComment) {

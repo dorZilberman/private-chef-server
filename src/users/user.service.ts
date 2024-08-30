@@ -251,6 +251,7 @@ export class UserService {
       }
 
       return {
+        id: user._id,
         email: user.email,
         fullName: user.fullName,
         image: user.image,

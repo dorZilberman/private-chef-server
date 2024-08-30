@@ -170,6 +170,12 @@ export class RecipeService {
     return await this.recipeModel.aggregate(fullPipeline);
   }
 
+  // Retrieve all recipes by user ID
+  async getAllRecipes(userId: string): Promise<Recipe[]> {
+    const pipeline = this.buildGetRecipesAggregation(userId);
+    return await this.recipeModel.aggregate(pipeline);
+  }
+
   // Update a recipe by ID, with user validation
   async updateRecipe(userId: string, id: string, updateRecipeDto: RecipeDto): Promise<Recipe> {
     const recipe = await this.recipeModel.findById(id).exec();
@@ -225,18 +231,34 @@ export class RecipeService {
         },
       },
       {
+             $addFields: {
+        userIdObjectId: { $toObjectId: '$userId' },
+         },
+      },
+      {
+        $lookup: {
+        from: 'users',
+        localField: 'userIdObjectId', // Assuming 'userId' is the field in the recipe schema
+        foreignField: '_id',
+        as: 'user',
+        },
+      },
+      {
         $addFields: {
           commentCount: { $size: '$comments' },
           likeCount: { $size: '$likes' },
           alreadyLiked: {
             $in: [userObjectId, '$likes.userId'],
           },
+          userName: { $arrayElemAt: ['$user.fullName', 0] },
         },
       },
       {
         $project: {
           comments: 0,
           likes: 0,
+          user: 0, // Remove userDetails after extracting the name
+          userIdObjectId: 0,
         },
       },
     ];
