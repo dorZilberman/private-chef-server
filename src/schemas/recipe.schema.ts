@@ -15,8 +15,11 @@ export class Recipe {
   @Prop({ type: []})
   products: { amount: string; name: string }[];
 
+  @Prop({ type: [], default: [] })
+  nutritionalValues: { name: string; value: string }[];
+
   @Prop({ type: [String], default: [] })
-  nutritional_values: string[];
+  missingItems: string[];
 
   @Prop({ default: "" })
   imageURL: string;
