@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class RecipeService {
   constructor(@InjectModel(Recipe.name) private recipeModel: Model<RecipeDocument>, private httpService: HttpService) { }
 
-  async getRecipe(products: string[], allergies: string[], isRegenerate: boolean, lastRecipeName?: string): Promise<string> {
+  async getRecipe(products: string[], allergies: string[], isRegenerate: boolean, additionalInput: string, lastRecipeName?: string): Promise<string> {
     console.log(isRegenerate)
     console.log(lastRecipeName)
     let query = 'please generate a recipe for me, ';
@@ -38,9 +38,24 @@ export class RecipeService {
       }
     }
 
+    query = query.concat(' If the ingredients contain any of the allergies, please exclude them from the recipe. ');
+    query = query.concat(' If the ingredients do not contain all the necessary ingredients for the recipe, please generate a recipe with the ingredients I have. ');
+    query = query.concat(' If the ingredients contain all the necessary ingredients for the recipe, please generate a recipe with the ingredients I have. ');
+    query = query.concat(' If its impossible to generate a recipe with the ingredients I have, please generate a recipe with the ingredients I have and the ingredients I am missing. ');
+    query = query.concat(' If you cant generate a recipe at all, please title the recipe as "No recipe found" and leave the rest of the fields empty. ');
+    query = query.concat(' If you can generate a recipe, please title the recipe with the dish name, list the products needed for the recipe, the nutritional values, the missing items and the instructions. ');
+    query = query.concat(' Please generate a realistic recipe, and not a random one. If some of the ingredients are not related to the recipe, please ignore them. ');
+    query = query.concat(' The nutritional values are important, calculate them from the ingredients - for the amount of each ingredient calculate the nutrition values for it')
+
+    if (additionalInput) {
+      query = query.concat(` Now I will add some additional input of my own. If the input has nothing to do with the recipe 
+        generation, please ignore it. `);
+      query = query.concat(`additional input: ${additionalInput}, `);
+    }
+
     query = query.concat(`please write the answer as a json string so i can run JSON.parse() on that and get a valid response,
     the keys in the json should be: 'title'(for the dish name), 'products'(as an array with amount needed for each product),
-    'nutritional values' and 'instructions'(the instructions for the recipe itself)`);
+    'nutritionalValues'(as an array with the name and value of each nutrition) 'missingItems'(if there are, as an array with amount needed for each product)  and 'instructions'(the instructions for the recipe itself)`);
 
     let numOfRetries = 1;
 
@@ -66,10 +81,11 @@ export class RecipeService {
         const response: AxiosResponse = await this.httpService.post(url, body).toPromise();
         const responseData = response.data;
         const textJson = responseData?.candidates[0]?.content.parts[0]?.text;
+        console.log(textJson)
         const startIndex = textJson.indexOf('```json') + 7;
         const endIndex = textJson.lastIndexOf('```');
         const jsonString = textJson.substring(startIndex, endIndex).trim();
-        const jsonData = JSON.parse(jsonString);
+        const jsonData = JSON.parse(textJson.trim());
         const imageURL = await this.generateAndSaveImage(jsonData.title);
         jsonData.imageURL = imageURL;
         return jsonData;
@@ -134,12 +150,12 @@ export class RecipeService {
 
   // Create a new recipe
   async createRecipe(userId: string, createRecipeDto: RecipeDto): Promise<Recipe> {
-    const { title, products, nutritional_values, instructions, imageURL } = createRecipeDto;
+    const { title, products, nutritionalValues, missingItems, instructions, imageURL } = createRecipeDto;
     const newRecipe = new this.recipeModel({
       userId,
       title,
       products,
-      nutritional_values,
+      nutritionalValues,
       instructions,
       imageURL
     });
@@ -186,11 +202,10 @@ export class RecipeService {
       throw new ForbiddenException('You do not have permission to edit this recipe');
     }
 
-    const { title, products, nutritional_values, instructions } = updateRecipeDto;
+    const { title, products, nutritionalValues, instructions } = updateRecipeDto;
 
     recipe.title = title ?? recipe.title;
     recipe.products = products ?? recipe.products;
-    recipe.nutritional_values = nutritional_values ?? recipe.nutritional_values;
     recipe.instructions = instructions ?? recipe.instructions;
 
     return recipe.save();
