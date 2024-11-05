@@ -45,6 +45,7 @@ export class RecipeService {
     query = query.concat(' If you cant generate a recipe at all, please title the recipe as "No recipe found" and leave the rest of the fields empty. ');
     query = query.concat(' If you can generate a recipe, please title the recipe with the dish name, list the products needed for the recipe, the nutritional values, the missing items and the instructions. ');
     query = query.concat(' Please generate a realistic recipe, and not a random one. If some of the ingredients are not related to the recipe, please ignore them. ');
+    query = query.concat(' The nutritional values are important, calculate them from the ingredients - for the amount of each ingredient calculate the nutrition values for it')
 
     if (additionalInput) {
       query = query.concat(` Now I will add some additional input of my own. If the input has nothing to do with the recipe 
@@ -80,6 +81,7 @@ export class RecipeService {
         const response: AxiosResponse = await this.httpService.post(url, body).toPromise();
         const responseData = response.data;
         const textJson = responseData?.candidates[0]?.content.parts[0]?.text;
+        console.log(textJson)
         const startIndex = textJson.indexOf('```json') + 7;
         const endIndex = textJson.lastIndexOf('```');
         const jsonString = textJson.substring(startIndex, endIndex).trim();
